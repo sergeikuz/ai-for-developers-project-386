@@ -1,0 +1,67 @@
+# MacOS
+.DS_Store
+
+# Dependency directories
+node_modules/
+.backend/
+__pycache__/
+*/__pycache__/
+*/*/__pycache__
+
+# Python
+*.py[cod]
+*$py.class
+*.egg-info/
+.dist/
+.build/
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+.venv/
+
+# Packaging
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.cover/
+.hypothesis/
+.ipynb_checkpoints
+
+# Next.js
+.next/
+
+# TypeSpec
+tsp-output/
+
+# Go
+*.exe
+*.test
+vendor/
+
+# SQLite (local / Docker volume)
+data/*.db
+
+# TLS keys (положите fullchain.pem + privkey.pem или см. scripts/mk-dev-ssl.sh)
+ssl/*
+!ssl/.gitkeep
+
+# Let's Encrypt webroot (временные challenge-файлы)
+certbot/www/*
+!certbot/www/.gitkeep
+
+# Environment
+.env
+web/.env.local
+web/.env*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
