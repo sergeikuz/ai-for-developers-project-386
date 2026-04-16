@@ -1,68 +1,47 @@
-import { AppShell, Group, Burger, Title, Anchor, Container } from '@mantine/core'
-import { useDisclosure } from '@mantine/hooks'
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Group, Anchor, Box } from '@mantine/core'
+import { Link, useLocation, Outlet } from 'react-router-dom'
+import { IconCalendarEvent } from '@tabler/icons-react'
 
 export default function Layout() {
-  const [opened, { toggle }] = useDisclosure()
   const location = useLocation()
 
   const navItems = [
-    { label: 'Book a Meeting', path: '/' },
-    { label: 'Admin', path: '/admin' },
+    { label: 'Записаться', path: '/book' },
+    { label: 'Админка', path: '/admin' },
   ]
 
   return (
-    <AppShell
-      header={{ height: 60 }}
-      navbar={{ width: 200, breakpoint: 'sm', collapsed: { desktop: !opened, mobile: !opened } }}
-      padding="md"
-    >
-      <AppShell.Header>
-        <Group h="100%" px="md">
-          <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-          <Group justify="space-between" style={{ flex: 1 }}>
-            <Anchor component={Link} to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <Title order={3}>Calendar Booking</Title>
-            </Anchor>
-            <Group visibleFrom="sm">
-              {navItems.map((item) => (
-                <Anchor
-                  key={item.path}
-                  component={Link}
-                  to={item.path}
-                  c={location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path)) ? 'violet' : 'dimmed'}
-                  fw={location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path)) ? 700 : 500}
-                  style={{ textDecoration: 'none' }}
-                >
-                  {item.label}
-                </Anchor>
-              ))}
+    <>
+      <Box style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
+        <Group h={60} px="xl" justify="space-between" style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <Anchor component={Link} to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Group gap={8}>
+              <IconCalendarEvent size={22} color="#f76707" />
+              <span style={{ fontWeight: 700, fontSize: 16 }}>Calendar</span>
             </Group>
+          </Anchor>
+          <Group gap="lg">
+            {navItems.map((item) => (
+              <Anchor
+                key={item.path}
+                component={Link}
+                to={item.path}
+                size="sm"
+                c={
+                  location.pathname === item.path ||
+                  (item.path !== '/book' && location.pathname.startsWith(item.path))
+                    ? 'violet'
+                    : 'dimmed'
+                }
+                style={{ textDecoration: 'none' }}
+              >
+                {item.label}
+              </Anchor>
+            ))}
           </Group>
         </Group>
-      </AppShell.Header>
-
-      <AppShell.Navbar p="md">
-        {navItems.map((item) => (
-          <Anchor
-            key={item.path}
-            component={Link}
-            to={item.path}
-            c={location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path)) ? 'violet' : 'text'}
-            fw={location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path)) ? 700 : 500}
-            style={{ textDecoration: 'none', display: 'block', padding: '8px 0' }}
-            onClick={toggle}
-          >
-            {item.label}
-          </Anchor>
-        ))}
-      </AppShell.Navbar>
-
-      <AppShell.Main>
-        <Container size="lg">
-          <Outlet />
-        </Container>
-      </AppShell.Main>
-    </AppShell>
+      </Box>
+      <Outlet />
+    </>
   )
 }

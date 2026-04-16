@@ -1,16 +1,114 @@
 import { useState } from 'react'
-import { Stack, Title, Text, Card, Group, Button, Loader, Center, TextInput, Divider, SegmentedControl } from '@mantine/core'
+import {
+  Stack, Title, Text, Card, Group, Button, Loader, Center, TextInput,
+  Badge, Avatar, Box, SimpleGrid, Divider, Modal,
+} from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useNavigate, useParams } from 'react-router-dom'
 import dayjs from 'dayjs'
+import 'dayjs/locale/ru'
 import { notifications } from '@mantine/notifications'
 import { useSlots, useCreateBooking, useEventTypes } from '../api/hooks'
+
+dayjs.locale('ru')
+
+const MONTHS_RU = [
+  'январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
+  'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь',
+]
+const DAYS_RU = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+
+function CalendarGrid({
+  currentDate,
+  selectedDate,
+  slotsByDate,
+  onSelectDate,
+  onPrevMonth,
+  onNextMonth,
+}: {
+  currentDate: dayjs.Dayjs
+  selectedDate: string | null
+  slotsByDate: Record<string, { total: number; available: number }>
+  onSelectDate: (d: string) => void
+  onPrevMonth: () => void
+  onNextMonth: () => void
+}) {
+  const startOfMonth = currentDate.startOf('month')
+  const endOfMonth = currentDate.endOf('month')
+  const startDay = (startOfMonth.day() + 6) % 7
+  const daysInMonth = endOfMonth.date()
+
+  const cells: (number | null)[] = []
+  for (let i = 0; i < startDay; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+  while (cells.length % 7 !== 0) cells.push(null)
+
+  const today = dayjs().format('YYYY-MM-DD')
+
+  return (
+    <Card shadow="sm" padding="lg" radius="lg" withBorder style={{ flex: 1, minWidth: 280 }}>
+      <Group justify="space-between" mb="md">
+        <Title order={4}>Календарь</Title>
+        <Group gap={4}>
+          <Button variant="outline" size="xs" radius="sm" onClick={onPrevMonth}>←</Button>
+          <Button variant="outline" size="xs" radius="sm" onClick={onNextMonth}>→</Button>
+        </Group>
+      </Group>
+      <Text size="sm" c="dimmed" mb="sm">
+        {MONTHS_RU[currentDate.month()]} {currentDate.year()} г.
+      </Text>
+      <SimpleGrid cols={7} spacing={4} verticalSpacing={4}>
+        {DAYS_RU.map((d) => (
+          <Text key={d} ta="center" size="xs" fw={600} c="dimmed" py={4}>
+            {d}
+          </Text>
+        ))}
+        {cells.map((day, idx) => {
+          if (day === null) return <Box key={idx} />
+          const dateStr = currentDate.date(day).format('YYYY-MM-DD')
+          const info = slotsByDate[dateStr]
+          const isSelected = selectedDate === dateStr
+          const isToday = dateStr === today
+          return (
+            <Button
+              key={idx}
+              variant={isSelected ? 'filled' : 'subtle'}
+              color={isSelected ? 'orange' : undefined}
+              radius="sm"
+              size="sm"
+              style={{
+                height: 'auto',
+                padding: '6px 2px',
+                minHeight: 44,
+                border: isToday && !isSelected ? '2px solid var(--mantine-color-orange-5)' : undefined,
+              }}
+              onClick={() => onSelectDate(dateStr)}
+            >
+              <Stack gap={0} align="center">
+                <Text size="sm" fw={isSelected ? 700 : 500} c={isSelected ? 'white' : 'dark'}>
+                  {day}
+                </Text>
+                {info && (
+                  <Text size="xs" c={isSelected ? 'white' : 'dimmed'} style={{ opacity: 0.7 }}>
+                    {info.available} св.
+                  </Text>
+                )}
+              </Stack>
+            </Button>
+          )
+        })}
+      </SimpleGrid>
+    </Card>
+  )
+}
 
 export default function BookingPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<{ startAt: string; endAt: string } | null>(null)
+  const [calendarMonth, setCalendarMonth] = useState(dayjs())
+  const [formOpened, setFormOpened] = useState(false)
 
   const { data: eventTypes } = useEventTypes()
   const eventType = eventTypes?.find((et) => et.id === id)
@@ -18,13 +116,10 @@ export default function BookingPage() {
   const createBooking = useCreateBooking()
 
   const form = useForm({
-    initialValues: {
-      guestName: '',
-      guestEmail: '',
-    },
+    initialValues: { guestName: '', guestEmail: '' },
     validate: {
-      guestName: (val) => (val.length > 0 ? null : 'Name is required'),
-      guestEmail: (val) => (/^\S+@\S+$/.test(val) ? null : 'Invalid email'),
+      guestName: (val) => (val.length > 0 ? null : 'Имя обязательно'),
+      guestEmail: (val) => (/^\S+@\S+$/.test(val) ? null : 'Некорректный email'),
     },
   })
 
@@ -32,116 +127,198 @@ export default function BookingPage() {
     return slotsLoading ? (
       <Center style={{ height: '60vh' }}><Loader size="lg" /></Center>
     ) : (
-      <Text c="red">Event type not found.</Text>
+      <Box style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
+        <Text c="red">Тип события не найден.</Text>
+      </Box>
     )
   }
 
-  const groupedSlots = slots?.reduce<Record<string, typeof slots>>((acc, slot) => {
+  const slotsByDate = slots?.reduce<Record<string, { total: number; available: number }>>((acc, slot) => {
     const dateKey = dayjs(slot.startAt).format('YYYY-MM-DD')
-    if (!acc[dateKey]) acc[dateKey] = []
-    acc[dateKey].push(slot)
+    if (!acc[dateKey]) acc[dateKey] = { total: 0, available: 0 }
+    acc[dateKey].total++
+    if (slot.isAvailable) acc[dateKey].available++
     return acc
   }, {}) || {}
 
-  const dates = Object.keys(groupedSlots).sort()
-  const availableSlots = selectedDate && groupedSlots[selectedDate]
-    ? groupedSlots[selectedDate].filter((s) => s.isAvailable)
+  const availableSlots = selectedDate
+    ? slots?.filter((s) => dayjs(s.startAt).format('YYYY-MM-DD') === selectedDate && s.isAvailable) || []
     : []
 
-  const handleSubmit = form.onSubmit((values) => {
-    if (!selectedDate || !id || !selectedSlot) {
-      notifications.show({ title: 'Error', message: 'Please select a time slot', color: 'red' })
-      return
-    }
+  const bookedSlots = selectedDate
+    ? slots?.filter((s) => dayjs(s.startAt).format('YYYY-MM-DD') === selectedDate && !s.isAvailable) || []
+    : []
 
+  const allSlotsForDate = [...bookedSlots, ...availableSlots].sort(
+    (a, b) => dayjs(a.startAt).valueOf() - dayjs(b.startAt).valueOf()
+  )
+
+  const selectedDateFormatted = selectedDate
+    ? dayjs(selectedDate).format('dddd, D MMMM').replace(/^./, (c) => c.toUpperCase())
+    : ''
+
+  const handleSubmit = form.onSubmit((values) => {
+    if (!selectedSlot || !id) return
     createBooking.mutate(
-      {
-        eventTypeId: id,
-        startAt: selectedSlot.startAt,
-        guestName: values.guestName,
-        guestEmail: values.guestEmail,
-      },
+      { eventTypeId: id, startAt: selectedSlot.startAt, guestName: values.guestName, guestEmail: values.guestEmail },
       {
         onSuccess: () => {
-          notifications.show({ title: 'Success', message: 'Booking created successfully!' })
-          navigate('/')
+          notifications.show({ title: 'Успех', message: 'Встреча забронирована!' })
+          navigate('/book')
         },
-        onError: (err: Error) => {
-          notifications.show({
-            title: 'Booking failed',
-            message: err.message || 'Something went wrong',
-            color: 'red',
-          })
-        },
+        onError: () => notifications.show({ title: 'Ошибка', message: 'Не удалось забронировать', color: 'red' }),
       },
     )
   })
 
   return (
-    <Stack gap="xl">
-      <div>
-        <Title order={2}>Book: {eventType.title}</Title>
-        <Text c="dimmed">{eventType.description} ({eventType.duration} min)</Text>
-      </div>
+    <Box style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
+      <Title order={2} mb="xl">{eventType.title}</Title>
 
       {slotsLoading ? (
         <Center style={{ height: '40vh' }}><Loader size="lg" /></Center>
       ) : (
-        <>
-          {dates.length > 0 && (
-            <SegmentedControl
-              value={selectedDate || ''}
-              onChange={(d) => { setSelectedDate(d); setSelectedSlot(null) }}
-              data={dates.map((d) => ({
-                label: dayjs(d).format('ddd, MMM D'),
-                value: d,
-              }))}
-              fullWidth
-            />
-          )}
+        <Group align="flex-start" gap="md" wrap="nowrap" visibleFrom="sm">
+          {/* Left column: info */}
+          <Card shadow="sm" padding="lg" radius="lg" withBorder style={{ width: 280, flexShrink: 0 }}>
+            <Group gap="md" mb="md">
+              <Avatar size={48} radius="xl" color="orange">
+                <span style={{ fontSize: 24 }}>👤</span>
+              </Avatar>
+              <div>
+                <Text fw={700}>Tota</Text>
+                <Text size="xs" c="dimmed">Host</Text>
+              </div>
+            </Group>
+            <Group gap="xs" mb="sm">
+              <Text fw={700}>{eventType.title}</Text>
+              <Badge variant="light" color="gray" size="sm">{eventType.duration} мин</Badge>
+            </Group>
+            <Text size="sm" c="dimmed" mb="md">{eventType.description}</Text>
 
-          {selectedDate && (
-            <Card shadow="sm" padding="lg" radius="md" withBorder>
-              <Title order={4} mb="md">Available Times</Title>
-              {availableSlots.length > 0 ? (
-                <Group>
-                  {availableSlots.map((slot) => (
+            <Card padding="sm" radius="md" withBorder bg="gray.0" mb="sm">
+              <Text size="xs" c="dimmed" mb={2}>Выбранная дата</Text>
+              <Text size="sm" fw={500}>{selectedDateFormatted || '—'}</Text>
+            </Card>
+            <Card padding="sm" radius="md" withBorder bg="gray.0">
+              <Text size="xs" c="dimmed" mb={2}>Выбранное время</Text>
+              <Text size="sm" fw={500}>
+                {selectedSlot
+                  ? `${dayjs(selectedSlot.startAt).format('HH:mm')} – ${dayjs(selectedSlot.endAt).format('HH:mm')}`
+                  : 'Время не выбрано'}
+              </Text>
+            </Card>
+          </Card>
+
+          {/* Middle column: calendar */}
+          <CalendarGrid
+            currentDate={calendarMonth}
+            selectedDate={selectedDate}
+            slotsByDate={slotsByDate}
+            onSelectDate={(d) => { setSelectedDate(d); setSelectedSlot(null) }}
+            onPrevMonth={() => setCalendarMonth((m) => m.subtract(1, 'month'))}
+            onNextMonth={() => setCalendarMonth((m) => m.add(1, 'month'))}
+          />
+
+          {/* Right column: slots */}
+          <Card shadow="sm" padding="lg" radius="lg" withBorder style={{ width: 280, flexShrink: 0 }}>
+            <Title order={4} mb="md">Статус слотов</Title>
+            <Stack gap="xs">
+              {allSlotsForDate.length > 0 ? (
+                allSlotsForDate.map((slot) => {
+                  const isSelected = selectedSlot?.startAt === slot.startAt
+                  return (
                     <Button
                       key={slot.startAt}
-                      variant={selectedSlot?.startAt === slot.startAt ? 'filled' : 'outline'}
+                      variant={isSelected ? 'filled' : slot.isAvailable ? 'outline' : 'subtle'}
+                      color={isSelected ? 'orange' : undefined}
+                      radius="md"
+                      fullWidth
+                      disabled={!slot.isAvailable}
                       onClick={() => setSelectedSlot({ startAt: slot.startAt, endAt: slot.endAt })}
+                      style={{ justifyContent: 'space-between', height: 40 }}
                     >
-                      {dayjs(slot.startAt).format('HH:mm')}
+                      <Text size="sm" c={slot.isAvailable ? 'dark' : 'dimmed'}>
+                        {dayjs(slot.startAt).format('HH:mm')} – {dayjs(slot.endAt).format('HH:mm')}
+                      </Text>
+                      <Text size="xs" fw={600} c={slot.isAvailable ? 'dark' : 'dimmed'}>
+                        {slot.isAvailable ? 'Свободно' : 'Занято'}
+                      </Text>
                     </Button>
-                  ))}
-                </Group>
+                  )
+                })
               ) : (
-                <Text c="dimmed">No available slots for this date.</Text>
+                <Text c="dimmed" size="sm">Выберите дату</Text>
               )}
-            </Card>
-          )}
-
-          <Divider />
-
-          <form onSubmit={handleSubmit}>
-            <Stack>
-              <TextInput
-                label="Your Name"
-                placeholder="John Doe"
-                {...form.getInputProps('guestName')}
-              />
-              <TextInput
-                label="Email"
-                placeholder="john@example.com"
-                {...form.getInputProps('guestEmail')}
-              />
-              <Button type="submit" loading={createBooking.isPending} fullWidth>
-                Confirm Booking
-              </Button>
             </Stack>
-          </form>
-        </>
+            <Divider my="md" />
+            <Group grow>
+              <Button variant="outline" radius="md" onClick={() => navigate('/book')}>
+                Назад
+              </Button>
+              <Button
+                color="orange"
+                radius="md"
+                disabled={!selectedSlot}
+                onClick={() => setFormOpened(true)}
+              >
+                Продолжить
+              </Button>
+            </Group>
+          </Card>
+        </Group>
       )}
-    </Stack>
+
+      {/* Mobile layout */}
+      <Stack gap="md" hiddenFrom="sm">
+        <Card shadow="sm" padding="lg" radius="lg" withBorder>
+          <Group gap="md" mb="md">
+            <Avatar size={48} radius="xl" color="orange"><span style={{ fontSize: 24 }}>👤</span></Avatar>
+            <div><Text fw={700}>Tota</Text><Text size="xs" c="dimmed">Host</Text></div>
+          </Group>
+          <Group gap="xs"><Text fw={700}>{eventType.title}</Text><Badge variant="light" color="gray" size="sm">{eventType.duration} мин</Badge></Group>
+        </Card>
+        <CalendarGrid
+          currentDate={calendarMonth}
+          selectedDate={selectedDate}
+          slotsByDate={slotsByDate}
+          onSelectDate={(d) => { setSelectedDate(d); setSelectedSlot(null) }}
+          onPrevMonth={() => setCalendarMonth((m) => m.subtract(1, 'month'))}
+          onNextMonth={() => setCalendarMonth((m) => m.add(1, 'month'))}
+        />
+        <Card shadow="sm" padding="lg" radius="lg" withBorder>
+          <Title order={4} mb="md">Статус слотов</Title>
+          <Stack gap="xs">
+            {allSlotsForDate.length > 0 ? allSlotsForDate.map((slot) => {
+              const isSelected = selectedSlot?.startAt === slot.startAt
+              return (
+                <Button key={slot.startAt} variant={isSelected ? 'filled' : slot.isAvailable ? 'outline' : 'subtle'} color={isSelected ? 'orange' : undefined} radius="md" fullWidth disabled={!slot.isAvailable} onClick={() => setSelectedSlot({ startAt: slot.startAt, endAt: slot.endAt })} style={{ justifyContent: 'space-between', height: 40 }}>
+                  <Text size="sm" c={slot.isAvailable ? 'dark' : 'dimmed'}>{dayjs(slot.startAt).format('HH:mm')} – {dayjs(slot.endAt).format('HH:mm')}</Text>
+                  <Text size="xs" fw={600} c={slot.isAvailable ? 'dark' : 'dimmed'}>{slot.isAvailable ? 'Свободно' : 'Занято'}</Text>
+                </Button>
+              )
+            }) : <Text c="dimmed" size="sm">Выберите дату</Text>}
+          </Stack>
+          <Divider my="md" />
+          <Group grow>
+            <Button variant="outline" radius="md" onClick={() => navigate('/book')}>Назад</Button>
+            <Button color="orange" radius="md" disabled={!selectedSlot} onClick={() => setFormOpened(true)}>Продолжить</Button>
+          </Group>
+        </Card>
+      </Stack>
+
+      {/* Booking form modal */}
+      <Modal opened={formOpened} onClose={() => setFormOpened(false)} title="Данные для записи" size="sm">
+        <form onSubmit={handleSubmit}>
+          <Stack>
+            <TextInput label="Имя" placeholder="Ваше имя" {...form.getInputProps('guestName')} />
+            <TextInput label="Email" placeholder="email@example.com" {...form.getInputProps('guestEmail')} />
+            <Button type="submit" color="orange" loading={createBooking.isPending} fullWidth>
+              Забронировать
+            </Button>
+          </Stack>
+        </form>
+      </Modal>
+    </Box>
   )
 }
