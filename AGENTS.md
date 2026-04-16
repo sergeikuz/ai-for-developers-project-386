@@ -27,7 +27,21 @@ make e2e-test         # run Playwright E2E tests (starts dev + backend automatic
 make e2e-install      # install Playwright browsers (chromium)
 make test             # run all tests (backend + e2e)
 make clean            # removes node_modules, dist, tsp-output, src/api/generated, backend caches
+make docker-build     # build Docker image
+make docker-run       # run Docker container on port 4010
 ```
+
+## Docker
+
+```bash
+docker build -t calendar-booking .
+docker run -p 4010:4010 calendar-booking
+docker run -p 8080:8080 -e PORT=8080 calendar-booking  # custom port
+```
+
+- Multi-stage build: Node 20 (frontend) + Python 3.12-slim (backend)
+- Port from `PORT` env var (default 4010)
+- Backend serves built frontend static files + SPA fallback
 
 **Gotcha:** `make clean` deletes `src/api/generated/`. After running it, you must run `make api-gen` before the app compiles.
 

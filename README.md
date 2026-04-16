@@ -26,6 +26,8 @@ make backend-dev      # start FastAPI backend on port 4010
 make backend-test     # run backend pytest tests
 make e2e-test         # run Playwright E2E tests
 make clean            # removes node_modules, dist, tsp-output, src/api/generated, backend caches
+make docker-build     # build Docker image
+make docker-run       # run Docker container on port 4010
 ```
 
 ## CI
@@ -69,6 +71,23 @@ e2e/
 typespec/
   main.tsp            # API contract (source of truth)
 ```
+
+## Docker
+
+```bash
+docker build -t calendar-booking .
+docker run -p 4010:4010 calendar-booking
+```
+
+Приложение запускается на порту из переменной окружения `PORT` (по умолчанию 4010).
+
+## Deploy
+
+Приложение задеплоено:
+
+**[https://ai-for-developers-project-386.onrender.com](https://ai-for-developers-project-386.onrender.com)**
+
+Для деплоя используется Docker-образ. Конфигурация в `render.yaml`.
 
 ## Routing
 

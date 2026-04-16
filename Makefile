@@ -1,4 +1,4 @@
-.PHONY: help install dev build lint preview typespec api-gen mock clean backend-install backend-dev backend-test e2e-test e2e-install test
+.PHONY: help install dev build lint preview typespec api-gen mock clean backend-install backend-dev backend-test e2e-test e2e-install test docker-build docker-run
 
 help:
 	@echo "Calendar Booking App — Available commands:"
@@ -18,6 +18,8 @@ help:
 	@echo "  make e2e-install  Install Playwright browsers (chromium)"
 	@echo "  make test         Run all tests (backend + e2e)"
 	@echo "  make clean        Remove build artifacts and caches"
+	@echo "  make docker-build Build Docker image"
+	@echo "  make docker-run   Run Docker container on port 4010"
 
 install:
 	npm install
@@ -64,3 +66,9 @@ e2e-install:
 	npx playwright install --with-deps chromium
 
 test: backend-test e2e-test
+
+docker-build:
+	docker build -t calendar-booking .
+
+docker-run:
+	docker run -p 4010:4010 -e PORT=4010 calendar-booking

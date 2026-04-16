@@ -1,6 +1,18 @@
-# Avoid baking local dev API URL into Next.js build
-web/.env.local
-web/.env*.local
-
-.git
-.github
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+.git/
+.github/
+e2e/
+typespec/
+*.md
+Makefile
+.eslintrc*
+eslint.config.*
+.prettierrc*
+.editorconfig
+.env
+*.log
+.DS_Store

@@ -1,6 +1,6 @@
 import { OpenAPI } from './generated'
 
-OpenAPI.BASE = import.meta.env.VITE_API_URL || 'http://localhost:4010'
+OpenAPI.BASE = import.meta.env.VITE_API_URL || ''
 
 export { OpenAPI }
 export { OwnerService } from './generated/services/OwnerService'
