@@ -206,7 +206,7 @@ export default function BookingPage() {
   })
 
   return (
-    <Box style={{ background: '#f9fafb', minHeight: 'calc(100vh - 60px)' }}>
+    <Box style={{ background: 'linear-gradient(135deg, #dbeafe 0%, #fef3e2 40%, #f9fafb 100%)', minHeight: 'calc(100vh - 60px)' }}>
       <Box style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
         <Title order={2} mb="xl" style={{ color: '#0f172a' }}>{eventType.title}</Title>
 

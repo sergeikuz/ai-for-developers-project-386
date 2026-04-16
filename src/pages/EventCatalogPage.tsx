@@ -50,7 +50,7 @@ export default function EventCatalogPage() {
   }
 
   return (
-    <Box style={{ background: '#f9fafb', minHeight: 'calc(100vh - 60px)' }}>
+    <Box style={{ background: 'linear-gradient(135deg, #dbeafe 0%, #fef3e2 40%, #f9fafb 100%)', minHeight: 'calc(100vh - 60px)' }}>
       <Box style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
         {/* Host profile card */}
         <Card

@@ -18,10 +18,10 @@ namespace CalendarBooking;
 // ============ Models ============
 
 model EventType {
-  id: string;
-  title: string;
-  description: string;
-  duration: int32;
+  @example("meeting-15") id: string;
+  @example("Встреча 15 минут") title: string;
+  @example("Короткий тип события для быстрого слота.") description: string;
+  @example(15) duration: int32;
 }
 
 model CreateEventTypeRequest {
