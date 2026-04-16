@@ -64,8 +64,7 @@ def create_app(store: dict | None = None) -> FastAPI:
                     continue
 
                 is_booked = any(
-                    b.eventTypeId == event_type.id
-                    and b.startAt == current
+                    b.startAt < slot_end and b.endAt > current
                     for b in b_store
                 )
                 slots.append(
