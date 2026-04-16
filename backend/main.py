@@ -170,3 +170,6 @@ def create_app(store: dict | None = None) -> FastAPI:
 
 
 app = create_app()
+
+from store import seed_data
+seed_data()
