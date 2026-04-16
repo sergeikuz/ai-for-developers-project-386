@@ -4,22 +4,25 @@
 Calendar booking app — **Design First** approach. `typespec/main.tsp` is the single source of truth for the API contract.
 
 ## Stack
-- **Frontend:** React 19 + TypeScript + Vite + Mantine + React Query + React Router
+- **Frontend:** React 19 + TypeScript + Vite + Mantine + React Query + React Router + dayjs
+- **Backend:** FastAPI (Python) + Pydantic + Uvicorn on port **4010** (managed by `uv`)
 - **API contract:** TypeSpec → OpenAPI → generated TS client (`openapi-typescript-codegen --client fetch`)
-- **Mock:** Prism on port **4010** (not the default 3000)
-- **Backend:** FastAPI (Python) — **not yet implemented**
+- **Mock:** Prism on port **4010** (use when backend is not running)
 
 ## Commands
 
 ```bash
-make install          # npm install (root + typespec/)
+make install          # npm install (root + typespec/) + uv sync (backend)
 make dev              # Vite dev server
 make build            # tsc -b && vite build (typecheck first)
 make lint             # eslint .
 make typespec         # cd typespec && npx tsp compile main.tsp
 make api-gen          # regenerate TS client from openapi.yaml
 make mock             # prism mock on port 4010
-make clean            # removes node_modules, dist, tsp-output, src/api/generated
+make backend-install  # uv sync (backend dependencies)
+make backend-dev      # start FastAPI backend on port 4010
+make backend-test     # run backend pytest tests
+make clean            # removes node_modules, dist, tsp-output, src/api/generated, backend caches
 ```
 
 **Gotcha:** `make clean` deletes `src/api/generated/`. After running it, you must run `make api-gen` before the app compiles.
@@ -27,9 +30,9 @@ make clean            # removes node_modules, dist, tsp-output, src/api/generate
 **Gotcha:** The Makefile target is `api-gen` (hyphen), not `api:gen`. The colon breaks Make parsing.
 
 ## API URL config
-- `.env` sets `VITE_API_URL=http://localhost:4010` (Prism mock)
+- `.env` sets `VITE_API_URL=http://localhost:4010` (FastAPI backend or Prism mock)
 - `src/api/index.ts` reads `VITE_API_URL` and sets `OpenAPI.BASE` — single point of API URL config
-- When the real FastAPI backend runs, change `.env` to point to its port
+- Run `make backend-dev` for real backend, or `make mock` for Prism
 
 ## Architecture
 
@@ -40,22 +43,46 @@ src/
     hooks.ts          # React Query wrappers — all components use these, not raw services
     index.ts          # re-exports + OpenAPI.BASE config
   components/
-    Layout.tsx        # AppShell with header nav + mobile burger menu
+    Layout.tsx        # Simple top navbar with Calendar logo + nav links
   pages/
-    HomePage.tsx          # / — list event types, "Book Now" cards
-    BookingPage.tsx       # /book/:id — date picker, slot selection, guest form
-    AdminPage.tsx         # /admin — tabbed dashboard
+    HomePage.tsx          # / — landing page with gradient, badge, CTA, features card
+    EventCatalogPage.tsx  # /book — host profile + event type cards (15min, 30min)
+    BookingPage.tsx       # /book/:id — 3-column: info panel, calendar grid, slot status
+    AdminPage.tsx         # /admin — tabbed dashboard (bookings + event types)
     AdminBookingsPage.tsx     # bookings table
     AdminEventTypesPage.tsx   # event types CRUD (create/edit modal, delete)
   main.tsx            # entry: BrowserRouter + QueryClient + MantineProvider
   App.tsx             # Routes definition
+
+backend/
+  main.py             # FastAPI app + all endpoints + business logic
+  models.py           # Pydantic models (matches TypeSpec contract)
+  store.py            # In-memory storage + seed data
+  test_main.py        # Pytest tests (functional + contract compliance)
+  pyproject.toml      # uv project config
 ```
+
+## Routing
+```
+/              → HomePage (landing)
+/book          → EventCatalogPage (select event type)
+/book/:id      → BookingPage (pick date + slot + guest form)
+/admin         → AdminPage (tabbed: bookings + event types)
+```
+
+## Design
+- Cal.com-inspired UI with gradient backgrounds (`#dbeafe → #fef3e2 → #f9fafb`)
+- Orange accent color (`#f76707`) for CTAs, selected states
+- All text in Russian
+- Gradient host avatar (orange/teal split)
+- White cards with subtle borders on gradient backgrounds
 
 ## Conventions
 - **Never edit `openapi.yaml`** — update `typespec/main.tsp` then `make typespec && make api-gen`
+- **Prism mock data** — examples are added directly to `openapi.yaml` responses (not via TypeSpec `@example` on operations)
 - Components call hooks from `src/api/hooks.ts`, never the generated services directly
 - Mantine CSS is imported in `main.tsx` (`@mantine/core/styles.css`, `@mantine/notifications/styles.css`)
-- No auth — single predefined owner profile
+- No auth — single predefined owner profile ("Tota")
 - Two API roles: **Owner** (`/admin/*`) and **Guest** (public)
 - Booking rules: no double-booking same slot, 14-day availability window
 
