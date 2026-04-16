@@ -1,4 +1,4 @@
-.PHONY: help install dev build lint preview typespec api-gen mock clean backend-install backend-dev backend-test
+.PHONY: help install dev build lint preview typespec api-gen mock clean backend-install backend-dev backend-test e2e-test e2e-install test
 
 help:
 	@echo "Calendar Booking App — Available commands:"
@@ -14,6 +14,9 @@ help:
 	@echo "  make backend-install  Install Python backend dependencies (uv)"
 	@echo "  make backend-dev  Start FastAPI backend (port 4010)"
 	@echo "  make backend-test Run backend tests (pytest)"
+	@echo "  make e2e-test     Run Playwright E2E tests"
+	@echo "  make e2e-install  Install Playwright browsers (chromium)"
+	@echo "  make test         Run all tests (backend + e2e)"
 	@echo "  make clean        Remove build artifacts and caches"
 
 install:
@@ -53,3 +56,11 @@ backend-test:
 
 clean:
 	rm -rf node_modules dist typespec/node_modules typespec/tsp-output src/api/generated backend/__pycache__ backend/.pytest_cache backend/.venv
+
+e2e-test:
+	npx playwright test
+
+e2e-install:
+	npx playwright install --with-deps chromium
+
+test: backend-test e2e-test

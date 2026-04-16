@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test:e2e": "playwright test",
     "api:gen": "openapi-typescript-codegen --input typespec/tsp-output/openapi/openapi.yaml --output src/api/generated --client fetch",
     "mock": "prism mock typespec/tsp-output/openapi/openapi.yaml"
   },
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.59.1",
     "@stoplight/prism-cli": "^5.12.0",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",

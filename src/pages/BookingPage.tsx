@@ -105,6 +105,7 @@ function CalendarGrid({
           return (
             <Box
               key={idx}
+              data-testid={`calendar-day-${dateStr}`}
               onClick={() => onSelectDate(dateStr)}
               style={{
                 borderRadius: 8,
@@ -259,6 +260,8 @@ export default function BookingPage() {
                     return (
                       <Box
                         key={slot.startAt}
+                        data-testid={`slot-${slot.startAt}`}
+                        data-available={slot.isAvailable}
                         onClick={() => slot.isAvailable && setSelectedSlot({ startAt: slot.startAt, endAt: slot.endAt })}
                         style={{
                           borderRadius: 8,
@@ -276,7 +279,7 @@ export default function BookingPage() {
                         <Text size="sm" fw={500} c={slot.isAvailable ? 'dark' : 'dimmed'}>
                           {dayjs(slot.startAt).format('HH:mm')} - {dayjs(slot.endAt).format('HH:mm')}
                         </Text>
-                        <Text size="xs" fw={600} c={slot.isAvailable ? 'dark' : 'dimmed'}>
+                        <Text size="xs" fw={600} c={slot.isAvailable ? 'dark' : 'dimmed'} data-testid={slot.isAvailable ? 'slot-available' : 'slot-booked'}>
                           {slot.isAvailable ? 'Свободно' : 'Занято'}
                         </Text>
                       </Box>
@@ -328,9 +331,9 @@ export default function BookingPage() {
               {allSlotsForDate.length > 0 ? allSlotsForDate.map((slot) => {
                 const isSelected = selectedSlot?.startAt === slot.startAt
                 return (
-                  <Box key={slot.startAt} onClick={() => slot.isAvailable && setSelectedSlot({ startAt: slot.startAt, endAt: slot.endAt })} style={{ borderRadius: 8, padding: '8px 12px', background: isSelected ? '#fff7ed' : '#f1f5f9', border: isSelected ? '2px solid #f97316' : '1px solid #e5e7eb', cursor: slot.isAvailable ? 'pointer' : 'default', opacity: slot.isAvailable ? 1 : 0.6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box key={slot.startAt} data-testid={`slot-${slot.startAt}`} data-available={slot.isAvailable} onClick={() => slot.isAvailable && setSelectedSlot({ startAt: slot.startAt, endAt: slot.endAt })} style={{ borderRadius: 8, padding: '8px 12px', background: isSelected ? '#fff7ed' : '#f1f5f9', border: isSelected ? '2px solid #f97316' : '1px solid #e5e7eb', cursor: slot.isAvailable ? 'pointer' : 'default', opacity: slot.isAvailable ? 1 : 0.6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Text size="sm" fw={500} c={slot.isAvailable ? 'dark' : 'dimmed'}>{dayjs(slot.startAt).format('HH:mm')} - {dayjs(slot.endAt).format('HH:mm')}</Text>
-                    <Text size="xs" fw={600} c={slot.isAvailable ? 'dark' : 'dimmed'}>{slot.isAvailable ? 'Свободно' : 'Занято'}</Text>
+                    <Text size="xs" fw={600} c={slot.isAvailable ? 'dark' : 'dimmed'} data-testid={slot.isAvailable ? 'slot-available' : 'slot-booked'}>{slot.isAvailable ? 'Свободно' : 'Занято'}</Text>
                   </Box>
                 )
               }) : <Text c="dimmed" size="sm">Выберите дату</Text>}
