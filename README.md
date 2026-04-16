@@ -2,8 +2,8 @@
 
 Приложение для онлайн-бронирования встреч. Дизайн-первый подход с TypeSpec как единым источником истины для API.
 
-[![e2e-tests](https://github.com/anomalyco/opencode/actions/workflows/e2e.yml/badge.svg)](https://github.com/anomalyco/opencode/actions/workflows/e2e.yml)
-[![hexlet-check](https://github.com/anomalyco/opencode/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/anomalyco/opencode/actions/workflows/hexlet-check.yml)
+[![e2e-tests](https://github.com/sergeikuz/ai-for-developers-project-386/actions/workflows/e2e.yml/badge.svg)](https://github.com/sergeikuz/ai-for-developers-project-386/actions)
+[![hexlet-check](https://github.com/sergeikuz/ai-for-developers-project-386/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/sergeikuz/ai-for-developers-project-386/actions)
 
 ## Stack
 
