@@ -85,7 +85,7 @@ docker run -p 4010:4010 calendar-booking
 
 Приложение задеплоено:
 
-**[https://ai-for-developers-project-386.onrender.com](https://ai-for-developers-project-386.onrender.com)**
+**[https://ai-for-developers-project-386-xtsy.onrender.com](https://ai-for-developers-project-386-xtsy.onrender.com)**
 
 Для деплоя используется Docker-образ. Конфигурация в `render.yaml`.
 
