@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Stack, Title, Text, Card, Group, Button, Loader, Center, TextInput,
-  Badge, Avatar, Box, SimpleGrid, Divider, Modal,
+  Badge, Box, SimpleGrid, Divider, Modal,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -17,6 +17,42 @@ const MONTHS_RU = [
   'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь',
 ]
 const DAYS_RU = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+
+function HostAvatar() {
+  return (
+    <Box style={{ position: 'relative', width: 40, height: 40, flexShrink: 0 }}>
+      <Box
+        style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: '50%',
+          background: 'linear-gradient(180deg, #fdba74 0%, #fdba74 50%, #2dd4bf 50%, #2dd4bf 100%)',
+        }}
+      />
+      <Box
+        style={{
+          position: 'absolute',
+          top: 6,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 16,
+          height: 16,
+          borderRadius: '50%',
+          background: '#fdba74',
+        }}
+      />
+    </Box>
+  )
+}
+
+function InfoBox({ label, value }: { label: string; value: string }) {
+  return (
+    <Box style={{ background: '#f1f5f9', borderRadius: 8, padding: '10px 12px' }}>
+      <Text size="xs" c="dimmed" mb={2}>{label}</Text>
+      <Text size="sm" fw={500} style={{ color: '#0f172a' }}>{value}</Text>
+    </Box>
+  )
+}
 
 function CalendarGrid({
   currentDate,
@@ -43,15 +79,13 @@ function CalendarGrid({
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
   while (cells.length % 7 !== 0) cells.push(null)
 
-  const today = dayjs().format('YYYY-MM-DD')
-
   return (
-    <Card shadow="sm" padding="lg" radius="lg" withBorder style={{ flex: 1, minWidth: 280 }}>
+    <Card padding="lg" radius="lg" withBorder style={{ flex: 1, minWidth: 280, background: '#fff', borderColor: '#e5e7eb' }}>
       <Group justify="space-between" mb="md">
-        <Title order={4}>Календарь</Title>
+        <Title order={4} style={{ color: '#0f172a' }}>Календарь</Title>
         <Group gap={4}>
-          <Button variant="outline" size="xs" radius="sm" onClick={onPrevMonth}>←</Button>
-          <Button variant="outline" size="xs" radius="sm" onClick={onNextMonth}>→</Button>
+          <Button variant="outline" size="xs" radius="sm" onClick={onPrevMonth} style={{ borderColor: '#e5e7eb', color: '#374151' }}>←</Button>
+          <Button variant="outline" size="xs" radius="sm" onClick={onNextMonth} style={{ borderColor: '#e5e7eb', color: '#374151' }}>→</Button>
         </Group>
       </Group>
       <Text size="sm" c="dimmed" mb="sm">
@@ -68,33 +102,33 @@ function CalendarGrid({
           const dateStr = currentDate.date(day).format('YYYY-MM-DD')
           const info = slotsByDate[dateStr]
           const isSelected = selectedDate === dateStr
-          const isToday = dateStr === today
           return (
-            <Button
+            <Box
               key={idx}
-              variant={isSelected ? 'filled' : 'subtle'}
-              color={isSelected ? 'orange' : undefined}
-              radius="sm"
-              size="sm"
-              style={{
-                height: 'auto',
-                padding: '6px 2px',
-                minHeight: 44,
-                border: isToday && !isSelected ? '2px solid var(--mantine-color-orange-5)' : undefined,
-              }}
               onClick={() => onSelectDate(dateStr)}
+              style={{
+                borderRadius: 8,
+                padding: '6px 2px',
+                minHeight: 48,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                background: isSelected ? '#fff7ed' : '#f1f5f9',
+                border: isSelected ? '2px solid #f97316' : '2px solid transparent',
+                transition: 'all 0.1s',
+              }}
             >
-              <Stack gap={0} align="center">
-                <Text size="sm" fw={isSelected ? 700 : 500} c={isSelected ? 'white' : 'dark'}>
-                  {day}
+              <Text size="sm" fw={isSelected ? 700 : 500} c={isSelected ? 'orange' : 'dark'}>
+                {day}
+              </Text>
+              {info && (
+                <Text size="xs" c={isSelected ? 'orange' : 'dimmed'} style={{ opacity: 0.7 }}>
+                  {info.available} св.
                 </Text>
-                {info && (
-                  <Text size="xs" c={isSelected ? 'white' : 'dimmed'} style={{ opacity: 0.7 }}>
-                    {info.available} св.
-                  </Text>
-                )}
-              </Stack>
-            </Button>
+              )}
+            </Box>
           )
         })}
       </SimpleGrid>
@@ -172,45 +206,114 @@ export default function BookingPage() {
   })
 
   return (
-    <Box style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
-      <Title order={2} mb="xl">{eventType.title}</Title>
+    <Box style={{ background: '#f9fafb', minHeight: 'calc(100vh - 60px)' }}>
+      <Box style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
+        <Title order={2} mb="xl" style={{ color: '#0f172a' }}>{eventType.title}</Title>
 
-      {slotsLoading ? (
-        <Center style={{ height: '40vh' }}><Loader size="lg" /></Center>
-      ) : (
-        <Group align="flex-start" gap="md" wrap="nowrap" visibleFrom="sm">
-          {/* Left column: info */}
-          <Card shadow="sm" padding="lg" radius="lg" withBorder style={{ width: 280, flexShrink: 0 }}>
-            <Group gap="md" mb="md">
-              <Avatar size={48} radius="xl" color="orange">
-                <span style={{ fontSize: 24 }}>👤</span>
-              </Avatar>
-              <div>
-                <Text fw={700}>Tota</Text>
-                <Text size="xs" c="dimmed">Host</Text>
-              </div>
-            </Group>
-            <Group gap="xs" mb="sm">
-              <Text fw={700}>{eventType.title}</Text>
-              <Badge variant="light" color="gray" size="sm">{eventType.duration} мин</Badge>
-            </Group>
-            <Text size="sm" c="dimmed" mb="md">{eventType.description}</Text>
-
-            <Card padding="sm" radius="md" withBorder bg="gray.0" mb="sm">
-              <Text size="xs" c="dimmed" mb={2}>Выбранная дата</Text>
-              <Text size="sm" fw={500}>{selectedDateFormatted || '—'}</Text>
-            </Card>
-            <Card padding="sm" radius="md" withBorder bg="gray.0">
-              <Text size="xs" c="dimmed" mb={2}>Выбранное время</Text>
-              <Text size="sm" fw={500}>
-                {selectedSlot
+        {slotsLoading ? (
+          <Center style={{ height: '40vh' }}><Loader size="lg" /></Center>
+        ) : (
+          <Group align="flex-start" gap="md" wrap="nowrap" visibleFrom="sm">
+            {/* Left column: info */}
+            <Card padding="lg" radius="lg" withBorder style={{ width: 280, flexShrink: 0, background: '#fff', borderColor: '#e5e7eb' }}>
+              <Group gap="md" mb="md">
+                <HostAvatar />
+                <div>
+                  <Text fw={700} style={{ color: '#0f172a' }}>Tota</Text>
+                  <Text size="xs" c="dimmed">Host</Text>
+                </div>
+              </Group>
+              <Group gap="xs" mb="sm">
+                <Text fw={700} style={{ color: '#0f172a' }}>{eventType.title}</Text>
+                <Badge variant="light" color="gray" size="sm" style={{ background: '#f1f5f9', color: '#64748b' }}>
+                  {eventType.duration} мин
+                </Badge>
+              </Group>
+              <Text size="sm" c="dimmed" mb="md">{eventType.description}</Text>
+              <InfoBox label="Выбранная дата" value={selectedDateFormatted || '—'} />
+              <Box mt="sm" />
+              <InfoBox label="Выбранное время" value={
+                selectedSlot
                   ? `${dayjs(selectedSlot.startAt).format('HH:mm')} – ${dayjs(selectedSlot.endAt).format('HH:mm')}`
-                  : 'Время не выбрано'}
-              </Text>
+                  : 'Время не выбрано'
+              } />
             </Card>
-          </Card>
 
-          {/* Middle column: calendar */}
+            {/* Middle column: calendar */}
+            <CalendarGrid
+              currentDate={calendarMonth}
+              selectedDate={selectedDate}
+              slotsByDate={slotsByDate}
+              onSelectDate={(d) => { setSelectedDate(d); setSelectedSlot(null) }}
+              onPrevMonth={() => setCalendarMonth((m) => m.subtract(1, 'month'))}
+              onNextMonth={() => setCalendarMonth((m) => m.add(1, 'month'))}
+            />
+
+            {/* Right column: slots */}
+            <Card padding="lg" radius="lg" withBorder style={{ width: 280, flexShrink: 0, background: '#fff', borderColor: '#e5e7eb' }}>
+              <Title order={4} mb="md" style={{ color: '#0f172a' }}>Статус слотов</Title>
+              <Stack gap="xs">
+                {allSlotsForDate.length > 0 ? (
+                  allSlotsForDate.map((slot) => {
+                    const isSelected = selectedSlot?.startAt === slot.startAt
+                    return (
+                      <Box
+                        key={slot.startAt}
+                        onClick={() => slot.isAvailable && setSelectedSlot({ startAt: slot.startAt, endAt: slot.endAt })}
+                        style={{
+                          borderRadius: 8,
+                          padding: '8px 12px',
+                          background: isSelected ? '#fff7ed' : '#f1f5f9',
+                          border: isSelected ? '2px solid #f97316' : '1px solid #e5e7eb',
+                          cursor: slot.isAvailable ? 'pointer' : 'default',
+                          opacity: slot.isAvailable ? 1 : 0.6,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          transition: 'all 0.1s',
+                        }}
+                      >
+                        <Text size="sm" fw={500} c={slot.isAvailable ? 'dark' : 'dimmed'}>
+                          {dayjs(slot.startAt).format('HH:mm')} - {dayjs(slot.endAt).format('HH:mm')}
+                        </Text>
+                        <Text size="xs" fw={600} c={slot.isAvailable ? 'dark' : 'dimmed'}>
+                          {slot.isAvailable ? 'Свободно' : 'Занято'}
+                        </Text>
+                      </Box>
+                    )
+                  })
+                ) : (
+                  <Text c="dimmed" size="sm">Выберите дату</Text>
+                )}
+              </Stack>
+              <Divider my="md" />
+              <Group grow>
+                <Button variant="outline" radius="md" onClick={() => navigate('/book')} style={{ borderColor: '#e5e7eb', color: '#0f172a', fontWeight: 600 }}>
+                  Назад
+                </Button>
+                <Button
+                  color="orange"
+                  radius="md"
+                  disabled={!selectedSlot}
+                  onClick={() => setFormOpened(true)}
+                  style={{ fontWeight: 600 }}
+                >
+                  Продолжить
+                </Button>
+              </Group>
+            </Card>
+          </Group>
+        )}
+
+        {/* Mobile layout */}
+        <Stack gap="md" hiddenFrom="sm">
+          <Card padding="lg" radius="lg" withBorder style={{ background: '#fff', borderColor: '#e5e7eb' }}>
+            <Group gap="md" mb="md">
+              <HostAvatar />
+              <div><Text fw={700} style={{ color: '#0f172a' }}>Tota</Text><Text size="xs" c="dimmed">Host</Text></div>
+            </Group>
+            <Group gap="xs"><Text fw={700} style={{ color: '#0f172a' }}>{eventType.title}</Text><Badge variant="light" color="gray" size="sm" style={{ background: '#f1f5f9', color: '#64748b' }}>{eventType.duration} мин</Badge></Group>
+          </Card>
           <CalendarGrid
             currentDate={calendarMonth}
             selectedDate={selectedDate}
@@ -219,106 +322,40 @@ export default function BookingPage() {
             onPrevMonth={() => setCalendarMonth((m) => m.subtract(1, 'month'))}
             onNextMonth={() => setCalendarMonth((m) => m.add(1, 'month'))}
           />
-
-          {/* Right column: slots */}
-          <Card shadow="sm" padding="lg" radius="lg" withBorder style={{ width: 280, flexShrink: 0 }}>
-            <Title order={4} mb="md">Статус слотов</Title>
+          <Card padding="lg" radius="lg" withBorder style={{ background: '#fff', borderColor: '#e5e7eb' }}>
+            <Title order={4} mb="md" style={{ color: '#0f172a' }}>Статус слотов</Title>
             <Stack gap="xs">
-              {allSlotsForDate.length > 0 ? (
-                allSlotsForDate.map((slot) => {
-                  const isSelected = selectedSlot?.startAt === slot.startAt
-                  return (
-                    <Button
-                      key={slot.startAt}
-                      variant={isSelected ? 'filled' : slot.isAvailable ? 'outline' : 'subtle'}
-                      color={isSelected ? 'orange' : undefined}
-                      radius="md"
-                      fullWidth
-                      disabled={!slot.isAvailable}
-                      onClick={() => setSelectedSlot({ startAt: slot.startAt, endAt: slot.endAt })}
-                      style={{ justifyContent: 'space-between', height: 40 }}
-                    >
-                      <Text size="sm" c={slot.isAvailable ? 'dark' : 'dimmed'}>
-                        {dayjs(slot.startAt).format('HH:mm')} – {dayjs(slot.endAt).format('HH:mm')}
-                      </Text>
-                      <Text size="xs" fw={600} c={slot.isAvailable ? 'dark' : 'dimmed'}>
-                        {slot.isAvailable ? 'Свободно' : 'Занято'}
-                      </Text>
-                    </Button>
-                  )
-                })
-              ) : (
-                <Text c="dimmed" size="sm">Выберите дату</Text>
-              )}
+              {allSlotsForDate.length > 0 ? allSlotsForDate.map((slot) => {
+                const isSelected = selectedSlot?.startAt === slot.startAt
+                return (
+                  <Box key={slot.startAt} onClick={() => slot.isAvailable && setSelectedSlot({ startAt: slot.startAt, endAt: slot.endAt })} style={{ borderRadius: 8, padding: '8px 12px', background: isSelected ? '#fff7ed' : '#f1f5f9', border: isSelected ? '2px solid #f97316' : '1px solid #e5e7eb', cursor: slot.isAvailable ? 'pointer' : 'default', opacity: slot.isAvailable ? 1 : 0.6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text size="sm" fw={500} c={slot.isAvailable ? 'dark' : 'dimmed'}>{dayjs(slot.startAt).format('HH:mm')} - {dayjs(slot.endAt).format('HH:mm')}</Text>
+                    <Text size="xs" fw={600} c={slot.isAvailable ? 'dark' : 'dimmed'}>{slot.isAvailable ? 'Свободно' : 'Занято'}</Text>
+                  </Box>
+                )
+              }) : <Text c="dimmed" size="sm">Выберите дату</Text>}
             </Stack>
             <Divider my="md" />
             <Group grow>
-              <Button variant="outline" radius="md" onClick={() => navigate('/book')}>
-                Назад
-              </Button>
-              <Button
-                color="orange"
-                radius="md"
-                disabled={!selectedSlot}
-                onClick={() => setFormOpened(true)}
-              >
-                Продолжить
-              </Button>
+              <Button variant="outline" radius="md" onClick={() => navigate('/book')} style={{ borderColor: '#e5e7eb', color: '#0f172a', fontWeight: 600 }}>Назад</Button>
+              <Button color="orange" radius="md" disabled={!selectedSlot} onClick={() => setFormOpened(true)} style={{ fontWeight: 600 }}>Продолжить</Button>
             </Group>
           </Card>
-        </Group>
-      )}
+        </Stack>
 
-      {/* Mobile layout */}
-      <Stack gap="md" hiddenFrom="sm">
-        <Card shadow="sm" padding="lg" radius="lg" withBorder>
-          <Group gap="md" mb="md">
-            <Avatar size={48} radius="xl" color="orange"><span style={{ fontSize: 24 }}>👤</span></Avatar>
-            <div><Text fw={700}>Tota</Text><Text size="xs" c="dimmed">Host</Text></div>
-          </Group>
-          <Group gap="xs"><Text fw={700}>{eventType.title}</Text><Badge variant="light" color="gray" size="sm">{eventType.duration} мин</Badge></Group>
-        </Card>
-        <CalendarGrid
-          currentDate={calendarMonth}
-          selectedDate={selectedDate}
-          slotsByDate={slotsByDate}
-          onSelectDate={(d) => { setSelectedDate(d); setSelectedSlot(null) }}
-          onPrevMonth={() => setCalendarMonth((m) => m.subtract(1, 'month'))}
-          onNextMonth={() => setCalendarMonth((m) => m.add(1, 'month'))}
-        />
-        <Card shadow="sm" padding="lg" radius="lg" withBorder>
-          <Title order={4} mb="md">Статус слотов</Title>
-          <Stack gap="xs">
-            {allSlotsForDate.length > 0 ? allSlotsForDate.map((slot) => {
-              const isSelected = selectedSlot?.startAt === slot.startAt
-              return (
-                <Button key={slot.startAt} variant={isSelected ? 'filled' : slot.isAvailable ? 'outline' : 'subtle'} color={isSelected ? 'orange' : undefined} radius="md" fullWidth disabled={!slot.isAvailable} onClick={() => setSelectedSlot({ startAt: slot.startAt, endAt: slot.endAt })} style={{ justifyContent: 'space-between', height: 40 }}>
-                  <Text size="sm" c={slot.isAvailable ? 'dark' : 'dimmed'}>{dayjs(slot.startAt).format('HH:mm')} – {dayjs(slot.endAt).format('HH:mm')}</Text>
-                  <Text size="xs" fw={600} c={slot.isAvailable ? 'dark' : 'dimmed'}>{slot.isAvailable ? 'Свободно' : 'Занято'}</Text>
-                </Button>
-              )
-            }) : <Text c="dimmed" size="sm">Выберите дату</Text>}
-          </Stack>
-          <Divider my="md" />
-          <Group grow>
-            <Button variant="outline" radius="md" onClick={() => navigate('/book')}>Назад</Button>
-            <Button color="orange" radius="md" disabled={!selectedSlot} onClick={() => setFormOpened(true)}>Продолжить</Button>
-          </Group>
-        </Card>
-      </Stack>
-
-      {/* Booking form modal */}
-      <Modal opened={formOpened} onClose={() => setFormOpened(false)} title="Данные для записи" size="sm">
-        <form onSubmit={handleSubmit}>
-          <Stack>
-            <TextInput label="Имя" placeholder="Ваше имя" {...form.getInputProps('guestName')} />
-            <TextInput label="Email" placeholder="email@example.com" {...form.getInputProps('guestEmail')} />
-            <Button type="submit" color="orange" loading={createBooking.isPending} fullWidth>
-              Забронировать
-            </Button>
-          </Stack>
-        </form>
-      </Modal>
+        {/* Booking form modal */}
+        <Modal opened={formOpened} onClose={() => setFormOpened(false)} title="Данные для записи" size="sm">
+          <form onSubmit={handleSubmit}>
+            <Stack>
+              <TextInput label="Имя" placeholder="Ваше имя" {...form.getInputProps('guestName')} />
+              <TextInput label="Email" placeholder="email@example.com" {...form.getInputProps('guestEmail')} />
+              <Button type="submit" color="orange" loading={createBooking.isPending} fullWidth style={{ fontWeight: 600 }}>
+                Забронировать
+              </Button>
+            </Stack>
+          </form>
+        </Modal>
+      </Box>
     </Box>
   )
 }

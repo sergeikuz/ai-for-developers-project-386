@@ -1,4 +1,4 @@
-import { Routes, Route, Outlet } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import EventCatalogPage from './pages/EventCatalogPage'
@@ -8,7 +8,7 @@ import AdminPage from './pages/AdminPage'
 function App() {
   return (
     <Routes>
-      <Route element={<><Layout /><Outlet /></>}>
+      <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="book" element={<EventCatalogPage />} />
         <Route path="book/:id" element={<BookingPage />} />
