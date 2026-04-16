@@ -8,6 +8,7 @@ Calendar booking app — **Design First** approach. `typespec/main.tsp` is the s
 - **Backend:** FastAPI (Python) + Pydantic + Uvicorn on port **4010** (managed by `uv`)
 - **API contract:** TypeSpec → OpenAPI → generated TS client (`openapi-typescript-codegen --client fetch`)
 - **Mock:** Prism on port **4010** (use when backend is not running)
+- **E2E tests:** Playwright (Chromium) in `e2e/`
 
 ## Commands
 
@@ -22,6 +23,9 @@ make mock             # prism mock on port 4010
 make backend-install  # uv sync (backend dependencies)
 make backend-dev      # start FastAPI backend on port 4010
 make backend-test     # run backend pytest tests
+make e2e-test         # run Playwright E2E tests (starts dev + backend automatically)
+make e2e-install      # install Playwright browsers (chromium)
+make test             # run all tests (backend + e2e)
 make clean            # removes node_modules, dist, tsp-output, src/api/generated, backend caches
 ```
 
@@ -60,6 +64,10 @@ backend/
   store.py            # In-memory storage + seed data
   test_main.py        # Pytest tests (functional + contract compliance)
   pyproject.toml      # uv project config
+
+e2e/
+  home.spec.ts        # Playwright E2E tests — home page
+  booking.spec.ts     # Playwright E2E tests — booking flow + admin
 ```
 
 ## Routing

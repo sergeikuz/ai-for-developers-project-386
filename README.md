@@ -1,73 +1,80 @@
-# React + TypeScript + Vite
+# Calendar Booking App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Приложение для онлайн-бронирования встреч. Дизайн-первый подход с TypeSpec как единым источником истины для API.
 
-Currently, two official plugins are available:
+[![e2e-tests](https://github.com/anomalyco/opencode/actions/workflows/e2e.yml/badge.svg)](https://github.com/anomalyco/opencode/actions/workflows/e2e.yml)
+[![hexlet-check](https://github.com/anomalyco/opencode/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/anomalyco/opencode/actions/workflows/hexlet-check.yml)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+- **Frontend:** React 19 + TypeScript + Vite + Mantine + React Query + React Router + dayjs
+- **Backend:** FastAPI (Python) + Pydantic + Uvicorn on port **4010**
+- **API contract:** TypeSpec → OpenAPI → generated TS client
+- **E2E tests:** Playwright (Chromium)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Commands
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+make install          # npm install (root + typespec/) + uv sync (backend)
+make dev              # Vite dev server
+make build            # tsc -b && vite build
+make lint             # eslint .
+make typespec         # cd typespec && npx tsp compile main.tsp
+make api-gen          # regenerate TS client from openapi.yaml
+make mock             # prism mock on port 4010
+make backend-dev      # start FastAPI backend on port 4010
+make backend-test     # run backend pytest tests
+make e2e-test         # run Playwright E2E tests
+make clean            # removes node_modules, dist, tsp-output, src/api/generated, backend caches
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## CI
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Проект использует GitHub Actions для автоматической проверки:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Workflow | Описание |
+|---|---|
+| [e2e.yml](.github/workflows/e2e.yml) | Playwright E2E-тесты: запускает фронтенд + бэкенд, проверяет полный путь бронирования |
+| [hexlet-check.yml](.github/workflows/hexlet-check.yml) | Автоматическая проверка Hexlet |
+
+E2E-тесты запускаются на каждый push и pull request в `main`/`master`. Статус доступен во вкладке **Actions** репозитория.
+
+### E2E-сценарии
+
+- Главная страница: отображение CTA, навигация на /book
+- Каталог событий: карточки типов событий, переход на бронирование
+- Полный путь бронирования: выбор типа → дата → слот → форма → подтверждение
+- Забронированный слот отображается как "Занято"
+- Админка: бронирование появляется в таблице
+
+## Architecture
+
+```
+src/
+  api/generated/      # auto-generated from OpenAPI
+  api/hooks.ts        # React Query wrappers
+  pages/              # HomePage, EventCatalogPage, BookingPage, AdminPage
+  components/         # Layout.tsx
+
+backend/
+  main.py             # FastAPI app + endpoints
+  models.py           # Pydantic models
+  store.py            # In-memory storage + seed data
+  test_main.py        # Pytest tests
+
+e2e/
+  home.spec.ts        # Home page tests
+  booking.spec.ts     # Booking flow + admin tests
+
+typespec/
+  main.tsp            # API contract (source of truth)
+```
+
+## Routing
+
+```
+/              → HomePage (landing)
+/book          → EventCatalogPage (select event type)
+/book/:id      → BookingPage (pick date + slot + guest form)
+/admin         → AdminPage (tabbed: bookings + event types)
 ```
