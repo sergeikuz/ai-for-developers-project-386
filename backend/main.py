@@ -151,10 +151,7 @@ def create_app(store: dict | None = None) -> FastAPI:
             _error("BAD_REQUEST", f"Booking window is {AVAILABILITY_DAYS} days", 400)
 
         for booking in b_store:
-            if (
-                booking.eventTypeId == body.eventTypeId
-                and booking.startAt == body.startAt
-            ):
+            if booking.startAt < end_at and booking.endAt > body.startAt:
                 _error("CONFLICT", "This slot is already booked", 409)
 
         booking = Booking(
