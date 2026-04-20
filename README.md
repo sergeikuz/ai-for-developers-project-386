@@ -13,6 +13,109 @@
 - **Mock:** Prism on port **4010** (use when backend is not running)
 - **E2E tests:** Playwright (Chromium)
 
+<details>
+<summary><b>Подробнее о Vite</b></summary>
+
+**Vite** — сборщик и dev-сервер для фронтенда. Быстрее Webpack благодаря нативным ES-модулям и esbuild.
+
+### Как устроен в проекте
+
+- **Конфиг** — `vite.config.ts` (7 строк, плагин `@vitejs/plugin-react`)
+- **Dev-сервер** — `make dev` → `vite` на `localhost:5173` с HMR
+- **Сборка** — `make build` → `tsc -b && vite build` → `dist/`
+- **Переменные окружения** — `.env` с префиксом `VITE_`, доступны через `import.meta.env.VITE_API_URL`
+
+### Архитектура
+
+```
+Разработка (vite dev)
+├── Браузер запрашивает index.html
+├── Vite отдаёт HTML с <script type="module">
+├── Браузер запрашивает src/main.tsx
+├── Vite транслирует TSX → JS на лету (esbuild)
+├── Браузер запрашивает зависимости (react, mantine...)
+├── Vite отдаёт их из node_modules/.vite (pre-bundled)
+└── HMR: при изменении файла — только этот модуль обновляется
+
+Продакшен (vite build)
+├── Rollup бандлит всё приложение
+├── esbuild минифицирует JS/CSS
+├── Код-сплиттинг по динамическим импортам
+├── Хеш-файлы для кэширования (main-abc123.js)
+└── Вывод в dist/
+```
+
+</details>
+
+<details>
+<summary><b>Подробнее о Mantine</b></summary>
+
+**Mantine** — UI-библиотека для React с 100+ компонентами, хуками и системой тем.
+
+### Используемые пакеты
+
+| Пакет | Версия | Для чего |
+|---|---|---|
+| `@mantine/core` | ^8.3.0 | Компоненты (Button, Card, Table, Modal, Tabs, TextInput...) |
+| `@mantine/form` | ^8.3.0 | Валидация форм (`useForm` + `getInputProps`) |
+| `@mantine/notifications` | ^8.3.0 | Тосты (`notifications.show({ title, message })`) |
+| `@mantine/dates` | ^8.3.0 | ❌ Установлен, но не используется (календарь на dayjs) |
+| `@mantine/hooks` | ^8.3.0 | ❌ Установлен, но не используется (raw `useState`) |
+
+### Инициализация
+
+```tsx
+// main.tsx
+const theme = createTheme({
+  primaryColor: 'violet',
+  fontFamily: 'system-ui, -apple-system, sans-serif',
+})
+
+<MantineProvider theme={theme}>
+  <Notifications position="top-right" />
+  <App />
+</MantineProvider>
+```
+
+### Формы — `@mantine/form`
+
+```tsx
+const form = useForm({
+  initialValues: { guestName: '', guestEmail: '' },
+  validate: {
+    guestName: (val) => (val.length > 0 ? null : 'Имя обязательно'),
+    guestEmail: (val) => (/^\S+@\S+$/.test(val) ? null : 'Некорректный email'),
+  },
+})
+
+<TextInput label="Имя" {...form.getInputProps('guestName')} />
+<form onSubmit={form.onSubmit((values) => { ... })}>
+```
+
+### Стилизация
+
+Проект использует два подхода одновременно:
+
+- **Mantine shorthand props** — `gap`, `mb`, `c`, `fw`, `size`, `padding`
+- **Inline стили** — `style={{ background: 'linear-gradient(...)', ... }}` для кастомного дизайна
+
+### Адаптивность
+
+```tsx
+<SimpleGrid cols={{ base: 1, sm: 2 }}>  {/* 1 колонка mobile, 2 desktop */}
+<Group wrap="nowrap" visibleFrom="sm">  {/* только десктоп */}
+<Stack hiddenFrom="sm">                 {/* только мобильные */}
+```
+
+### Интеграция с React Router
+
+```tsx
+<Button component={Link} to="/book">Забронировать</Button>
+<Card component={Link} to={`/book/${et.id}`}>...</Card>
+```
+
+</details>
+
 ## Commands
 
 ```bash
