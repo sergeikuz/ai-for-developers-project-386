@@ -1,7 +1,8 @@
-import os
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import NoReturn
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -41,7 +42,7 @@ def create_app(store: dict | None = None) -> FastAPI:
     )
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc: HTTPException):
+    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code,
             content=exc.detail if isinstance(exc.detail, dict) else {"code": "ERROR", "message": str(exc.detail)},
@@ -78,21 +79,21 @@ def create_app(store: dict | None = None) -> FastAPI:
 
         return slots
 
-    def _error(code: str, message: str, status_code: int):
+    def _error(code: str, message: str, status_code: int) -> NoReturn:
         raise HTTPException(status_code=status_code, detail=Error(code=code, message=message).model_dump())
 
     @app.get("/admin/event-types", response_model=list[EventType], tags=["Owner"])
-    def list_event_types_admin():
+    def list_event_types_admin() -> list[EventType]:
         return list(et_store.values())
 
     @app.get("/admin/event-types/{id}", response_model=EventType, tags=["Owner"])
-    def get_event_type_admin(id: str):
+    def get_event_type_admin(id: str) -> EventType:
         if id not in et_store:
             _error("NOT_FOUND", f"Event type '{id}' not found", 404)
         return et_store[id]
 
     @app.post("/admin/event-types", response_model=EventType, tags=["Owner"])
-    def create_event_type_admin(body: CreateEventTypeRequest):
+    def create_event_type_admin(body: CreateEventTypeRequest) -> EventType:
         if body.id in et_store:
             _error("CONFLICT", f"Event type '{body.id}' already exists", 409)
         event_type = EventType(
@@ -105,7 +106,7 @@ def create_app(store: dict | None = None) -> FastAPI:
         return event_type
 
     @app.put("/admin/event-types/{id}", response_model=EventType, tags=["Owner"])
-    def update_event_type_admin(id: str, body: UpdateEventTypeRequest):
+    def update_event_type_admin(id: str, body: UpdateEventTypeRequest) -> EventType:
         if id not in et_store:
             _error("NOT_FOUND", f"Event type '{id}' not found", 404)
         et_store[id] = EventType(
@@ -117,27 +118,27 @@ def create_app(store: dict | None = None) -> FastAPI:
         return et_store[id]
 
     @app.delete("/admin/event-types/{id}", status_code=204, tags=["Owner"])
-    def delete_event_type_admin(id: str):
+    def delete_event_type_admin(id: str) -> None:
         if id not in et_store:
             _error("NOT_FOUND", f"Event type '{id}' not found", 404)
         del et_store[id]
 
     @app.get("/admin/bookings", response_model=list[Booking], tags=["Owner"])
-    def list_bookings_admin():
+    def list_bookings_admin() -> list[Booking]:
         return sorted(b_store, key=lambda b: b.startAt, reverse=True)
 
     @app.get("/event-types", response_model=list[EventType], tags=["Guest"])
-    def list_event_types_public():
+    def list_event_types_public() -> list[EventType]:
         return list(et_store.values())
 
     @app.get("/event-types/{id}/slots", response_model=list[Slot], tags=["Guest"])
-    def get_available_slots(id: str):
+    def get_available_slots(id: str) -> list[Slot]:
         if id not in et_store:
             _error("NOT_FOUND", f"Event type '{id}' not found", 404)
         return _generate_slots(et_store[id])
 
     @app.post("/bookings", response_model=Booking, tags=["Guest"])
-    def create_booking(body: CreateBookingRequest):
+    def create_booking(body: CreateBookingRequest) -> Booking:
         if body.eventTypeId not in et_store:
             _error("NOT_FOUND", f"Event type '{body.eventTypeId}' not found", 404)
 
@@ -178,7 +179,7 @@ if STATIC_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="assets")
 
     @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
+    async def serve_spa(full_path: str) -> FileResponse:
         index_file = STATIC_DIR / "index.html"
         if index_file.exists():
             return FileResponse(str(index_file))
