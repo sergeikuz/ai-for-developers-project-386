@@ -101,15 +101,66 @@ e2e/
 
 ## Conventions
 - **Never edit `openapi.yaml`** — update `typespec/main.tsp` then `make typespec && make api-gen`
+- **Never edit `src/api/generated/`** — always regenerate via `make api-gen`
 - **Prism mock data** — examples are added directly to `openapi.yaml` responses (not via TypeSpec `@example` on operations)
 - Components call hooks from `src/api/hooks.ts`, never the generated services directly
 - Mantine CSS is imported in `main.tsx` (`@mantine/core/styles.css`, `@mantine/notifications/styles.css`)
 - No auth — single predefined owner profile ("Tota")
 - Two API roles: **Owner** (`/admin/*`) and **Guest** (public)
-- Booking rules: no double-booking same slot, 14-day availability window
+- Booking rules: no double-booking same slot (within one event type), 14-day availability window
+- All UI text in Russian
 
-## Verification order
+## Architectural Invariants
+
+### Layer Rules (Frontend)
+
 ```
-make lint && make build
+Pages → Hooks → api/index.ts → generated/ → fetch → Backend
 ```
-Both must pass. ESLint warnings from `src/api/generated/` are expected (from codegen directive comments).
+
+1. **Pages import ONLY hooks** — `src/pages/*.tsx` import from `../api/hooks.ts`, NEVER from `../api/generated/`
+2. **Hooks import ONLY from api/index.ts** — `src/api/hooks.ts` imports services/types from `../api` (which resolves to `index.ts`)
+3. **Generated is terminal** — `src/api/generated/` is auto-generated, never manually edited, never imports from app code
+4. **No raw fetch** — components never call `fetch()` or `axios` directly; all HTTP goes through hooks → generated SDK
+5. **No cross-page imports** — pages do not import from each other (except `AdminPage.tsx` → its tab children)
+6. **Components are pure UI** — `src/components/` contains layout/UI shells, no API calls
+
+### Layer Rules (Backend)
+
+```
+main.py → models.py → store.py
+```
+
+1. **One-way dependencies** — `main.py` imports from `models.py` and `store.py`; `store.py` imports from `models.py`; NO reverse imports
+2. **No circular dependencies** — the dependency graph must be a strict DAG
+3. **Models mirror TypeSpec** — every Pydantic model in `models.py` must match the corresponding TypeSpec model in `main.tsp`
+4. **Endpoints mirror TypeSpec** — every route in `main.py` must match a route defined in `typespec/main.tsp` (verified by contract tests)
+5. **App factory pattern** — `create_app(store=None)` enables test isolation; tests pass `fresh_store()`, production uses global store
+
+### TypeSpec Contract
+
+1. **Single source of truth** — `typespec/main.tsp` defines all models, routes, status codes, error shapes
+2. **Change flow** — modify `.tsp` → `make typespec` → `make api-gen` → (manually sync `backend/models.py` if models changed)
+3. **Contract tests** — `backend/test_main.py` reads generated `openapi.yaml` and verifies backend endpoints exist and return correct status codes
+
+### Forbidden Dependencies
+
+| From | → To | Forbidden |
+|---|---|---|
+| `src/pages/` | `src/api/generated/` | Direct import of generated services |
+| `src/pages/` | `src/pages/` | Cross-page imports (except AdminPage → tabs) |
+| `src/components/` | `src/api/` | API calls from layout components |
+| `backend/` | `src/` | Backend importing anything from frontend |
+| `src/` | `backend/` | Frontend importing anything from backend |
+| `typespec/` | `src/` or `backend/` | TypeSpec never imports from generated code |
+| Any layer | `openapi.yaml` (edit) | Never edit — regenerate from TypeSpec |
+
+### Verification
+
+```bash
+make lint && make build    # Frontend typecheck + lint
+make backend-test           # 30 pytest tests (functional + contract compliance)
+make e2e-test               # Playwright E2E (booking flow + admin)
+```
+
+All must pass. ESLint warnings from `src/api/generated/` are expected (from codegen directive comments).
