@@ -1,5 +1,6 @@
+import os
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import NoReturn
 
@@ -18,16 +19,18 @@ from models import (
     Error,
 )
 
-AVAILABILITY_DAYS = 14
-WORK_HOUR_START = 9
-WORK_HOUR_END = 18
+AVAILABILITY_DAYS: int = 14
+WORK_HOUR_START: int = 9
+WORK_HOUR_END: int = 18
+SLOT_INTERVAL_MINUTES: int = 15
 
 
 def create_app(store: dict | None = None) -> FastAPI:
     if store is None:
-        from store import event_types, bookings
-        et_store = event_types
-        b_store = bookings
+        from store import event_types, bookings, seed_data
+        seed_data()
+        et_store: dict[str, EventType] = event_types
+        b_store: list[Booking] = bookings
     else:
         et_store = store["event_types"]
         b_store = store["bookings"]
@@ -36,7 +39,7 @@ def create_app(store: dict | None = None) -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(","),
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -48,8 +51,11 @@ def create_app(store: dict | None = None) -> FastAPI:
             content=exc.detail if isinstance(exc.detail, dict) else {"code": "ERROR", "message": str(exc.detail)},
         )
 
+    def _build_event_type(id: str, title: str, description: str, duration: int) -> EventType:
+        return EventType(id=id, title=title, description=description, duration=duration)
+
     def _generate_slots(event_type: EventType) -> list[Slot]:
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         end_window = now + timedelta(days=AVAILABILITY_DAYS)
 
         slots: list[Slot] = []
@@ -61,11 +67,11 @@ def create_app(store: dict | None = None) -> FastAPI:
             if current.weekday() < 5 and WORK_HOUR_START <= current.hour < WORK_HOUR_END:
                 slot_end = current + timedelta(minutes=event_type.duration)
                 if slot_end.hour > WORK_HOUR_END or (slot_end.hour == WORK_HOUR_END and slot_end.minute > 0):
-                    current += timedelta(minutes=15)
+                    current += timedelta(minutes=SLOT_INTERVAL_MINUTES)
                     continue
 
                 is_booked = any(
-                    b.startAt < slot_end and b.endAt > current
+                    b.eventTypeId == event_type.id and b.startAt < slot_end and b.endAt > current
                     for b in b_store
                 )
                 slots.append(
@@ -75,7 +81,7 @@ def create_app(store: dict | None = None) -> FastAPI:
                         isAvailable=not is_booked,
                     )
                 )
-            current += timedelta(minutes=15)
+            current += timedelta(minutes=SLOT_INTERVAL_MINUTES)
 
         return slots
 
@@ -96,12 +102,7 @@ def create_app(store: dict | None = None) -> FastAPI:
     def create_event_type_admin(body: CreateEventTypeRequest) -> EventType:
         if body.id in et_store:
             _error("CONFLICT", f"Event type '{body.id}' already exists", 409)
-        event_type = EventType(
-            id=body.id,
-            title=body.title,
-            description=body.description,
-            duration=body.duration,
-        )
+        event_type = _build_event_type(body.id, body.title, body.description, body.duration)
         et_store[body.id] = event_type
         return event_type
 
@@ -109,12 +110,7 @@ def create_app(store: dict | None = None) -> FastAPI:
     def update_event_type_admin(id: str, body: UpdateEventTypeRequest) -> EventType:
         if id not in et_store:
             _error("NOT_FOUND", f"Event type '{id}' not found", 404)
-        et_store[id] = EventType(
-            id=id,
-            title=body.title,
-            description=body.description,
-            duration=body.duration,
-        )
+        et_store[id] = _build_event_type(id, body.title, body.description, body.duration)
         return et_store[id]
 
     @app.delete("/admin/event-types/{id}", status_code=204, tags=["Owner"])
@@ -145,13 +141,14 @@ def create_app(store: dict | None = None) -> FastAPI:
         event_type = et_store[body.eventTypeId]
         end_at = body.startAt + timedelta(minutes=event_type.duration)
 
-        if body.startAt < datetime.now():
+        now = datetime.now(timezone.utc)
+        if body.startAt < now:
             _error("BAD_REQUEST", "Cannot book in the past", 400)
-        if body.startAt > datetime.now() + timedelta(days=AVAILABILITY_DAYS):
+        if body.startAt > now + timedelta(days=AVAILABILITY_DAYS):
             _error("BAD_REQUEST", f"Booking window is {AVAILABILITY_DAYS} days", 400)
 
         for booking in b_store:
-            if booking.startAt < end_at and booking.endAt > body.startAt:
+            if booking.eventTypeId == body.eventTypeId and booking.startAt < end_at and booking.endAt > body.startAt:
                 _error("CONFLICT", "This slot is already booked", 409)
 
         booking = Booking(
@@ -171,9 +168,6 @@ def create_app(store: dict | None = None) -> FastAPI:
 
 app = create_app()
 
-from store import seed_data
-seed_data()
-
 STATIC_DIR = Path(__file__).parent / "dist"
 if STATIC_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="assets")
@@ -183,3 +177,4 @@ if STATIC_DIR.exists():
         index_file = STATIC_DIR / "index.html"
         if index_file.exists():
             return FileResponse(str(index_file))
+        raise HTTPException(status_code=404, detail=Error(code="NOT_FOUND", message="Frontend not built").model_dump())

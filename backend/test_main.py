@@ -1,6 +1,6 @@
 import pytest
 import yaml
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from fastapi.testclient import TestClient
 
@@ -58,7 +58,7 @@ class TestContractCompliance:
         s["event_types"]["meeting-15"] = EventType(
             id="meeting-15", title="T", description="D", duration=15,
         )
-        future = (datetime.now() + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+        future = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
         r = c.post("/bookings", json={
             "eventTypeId": "meeting-15",
             "startAt": future.isoformat(),
@@ -251,7 +251,7 @@ def test_slots_weekdays_only(client):
 def test_create_booking(client):
     c, s = client
     seed(s)
-    future = (datetime.now() + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+    future = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
     r = c.post("/bookings", json={
         "eventTypeId": "meeting-15",
         "startAt": future.isoformat(),
@@ -267,7 +267,7 @@ def test_create_booking(client):
 
 def test_create_booking_not_found(client):
     c, _ = client
-    future = (datetime.now() + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+    future = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
     r = c.post("/bookings", json={
         "eventTypeId": "nonexistent",
         "startAt": future.isoformat(),
@@ -280,7 +280,7 @@ def test_create_booking_not_found(client):
 def test_create_booking_past(client):
     c, s = client
     seed(s)
-    past = datetime.now() - timedelta(hours=1)
+    past = datetime.now(timezone.utc) - timedelta(hours=1)
     r = c.post("/bookings", json={
         "eventTypeId": "meeting-15",
         "startAt": past.isoformat(),
@@ -294,7 +294,7 @@ def test_create_booking_past(client):
 def test_create_booking_beyond_window(client):
     c, s = client
     seed(s)
-    far = datetime.now() + timedelta(days=30)
+    far = datetime.now(timezone.utc) + timedelta(days=30)
     r = c.post("/bookings", json={
         "eventTypeId": "meeting-15",
         "startAt": far.isoformat(),
@@ -307,7 +307,7 @@ def test_create_booking_beyond_window(client):
 def test_double_booking_conflict(client):
     c, s = client
     seed(s)
-    future = (datetime.now() + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+    future = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
     payload = {
         "eventTypeId": "meeting-15",
         "startAt": future.isoformat(),
@@ -327,7 +327,7 @@ def test_double_booking_conflict(client):
 def test_same_slot_different_event_type_ok(client):
     c, s = client
     seed(s)
-    future = (datetime.now() + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+    future = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
     r1 = c.post("/bookings", json={
         "eventTypeId": "meeting-15",
         "startAt": future.isoformat(),
@@ -357,8 +357,8 @@ def test_admin_list_bookings_empty(client):
 def test_admin_list_bookings_sorted(client):
     c, s = client
     seed(s)
-    t1 = (datetime.now() + timedelta(days=2)).replace(hour=10, minute=0, second=0, microsecond=0)
-    t2 = (datetime.now() + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+    t1 = (datetime.now(timezone.utc) + timedelta(days=2)).replace(hour=10, minute=0, second=0, microsecond=0)
+    t2 = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
     c.post("/bookings", json={"eventTypeId": "meeting-15", "startAt": t1.isoformat(), "guestName": "A", "guestEmail": "a@t.com"})
     c.post("/bookings", json={"eventTypeId": "meeting-15", "startAt": t2.isoformat(), "guestName": "B", "guestEmail": "b@t.com"})
     r = c.get("/admin/bookings")
@@ -371,7 +371,7 @@ def test_admin_list_bookings_sorted(client):
 def test_slot_becomes_unavailable_after_booking(client):
     c, s = client
     seed(s)
-    future = (datetime.now() + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+    future = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
     c.post("/bookings", json={
         "eventTypeId": "meeting-15",
         "startAt": future.isoformat(),
