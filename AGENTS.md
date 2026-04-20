@@ -155,6 +155,13 @@ main.py → models.py → store.py
 | `typespec/` | `src/` or `backend/` | TypeSpec never imports from generated code |
 | Any layer | `openapi.yaml` (edit) | Never edit — regenerate from TypeSpec |
 
+### Refactoring Workflow
+
+1. **Commit before each change** — before starting any refactoring step, create a git commit describing what will be changed and why
+2. **Run tests after each step** — execute relevant tests (`make backend-test`, `make e2e-test`, `make lint && make build`)
+3. **Revert on failure** — if tests fail, revert the last commit (`git revert HEAD`) and try a different approach
+4. **Small steps** — prefer multiple small commits over one large change; each commit should leave the codebase in a working state
+
 ### Verification
 
 ```bash
